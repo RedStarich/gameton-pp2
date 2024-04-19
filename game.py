@@ -15,7 +15,7 @@ screen = pygame.display.set_mode((W, H))
 class Laser:
   def __init__(self, x, y):
     self.laser = pygame.image.load("assets\laser\laser.png")
-    self.laser = pygame.transform.scale(self.laser, (self.laser.get_width() * 4, self.laser.get_height() * 4))
+    self.laser = pygame.transform.scale(self.laser, (self.laser.get_width() * 10, self.laser.get_height() * 4))
 
     self.splash = pygame.image.load("assets\laser\splash.png")
     self.splash = pygame.transform.scale(self.splash, (self.splash.get_width() * 4, self.splash.get_height() * 4))
@@ -39,31 +39,28 @@ class Laser:
     self.ray_point_2 = (0, 0)
     self.ray_point_3 = (0, 0)
 
+    self.angle = 0
     self.collision_pos = None
   
-  def update(self):
-    mousePos = pygame.mouse.get_pos()
-
+  def move(self, player_pos_x, player_pos_y):
+    self.ray_x = player_pos_x
+    self.ray_y = player_pos_y
+  
     # Finding angle between mouse and initial laser position
-    base_vector_len = math.sqrt(math.pow(250, 2))
-    mouse_vector_len = math.sqrt(math.pow(mousePos[0] - self.ray_x, 2) + math.pow(self.ray_y - mousePos[1], 2))
-    dot_product = 250 * (mousePos[0] - self.ray_x)
-    angle = math.degrees(math.acos(dot_product / (base_vector_len * mouse_vector_len)))
-
-    if mousePos[1] >= self.ray_y:
-      angle = 360 - angle
+    self.angle = get_mouse_angle()
 
     # Some mathematics to calculate the points of ray according to the angle
-    self.ray_point_1 = (self.ray_x + 4.5 * math.cos(math.radians(90 - angle)), self.ray_y + 4.5 * 4 * math.sin(math.radians(90 - angle)))
-    self.ray_point_2 = (self.ray_x - 4.5 * math.cos(math.radians(90 - angle)), self.ray_y - 4.5 * 4 * math.sin(math.radians(90 - angle)))
-    self.ray_point_3 = (self.ray_x + 500 * math.cos(math.radians(angle)), self.ray_y - 500 * math.sin(math.radians(angle)))
+    self.ray_point_1 = (self.ray_x + 4.5 * math.cos(math.radians(90 - self.angle)), self.ray_y + 4.5 * 4 * math.sin(math.radians(90 - self.angle)))
+    self.ray_point_2 = (self.ray_x - 4.5 * math.cos(math.radians(90 - self.angle)), self.ray_y - 4.5 * 4 * math.sin(math.radians(90 - self.angle)))
+    self.ray_point_3 = (self.ray_x + 500 * math.cos(math.radians(self.angle)), self.ray_y - 500 * math.sin(math.radians(self.angle)))
 
+  def render(self):
     # Scaling the laser by length (in order to make it shorter when it collides with object)
     self.scaled_laser = pygame.transform.scale(self.laser, (self.ray_length, self.laser.get_height()))
 
     # Rotation the laser
-    self.rotated_laser = pygame.transform.rotate(self.scaled_laser, angle)
-    self.rotated_splash = pygame.transform.rotate(self.splash, angle)
+    self.rotated_laser = pygame.transform.rotate(self.scaled_laser, self.angle)
+    self.rotated_splash = pygame.transform.rotate(self.splash, self.angle)
 
     self.rotated_laser_rect = self.rotated_laser.get_rect()
     self.rotated_laser_rect.center = (self.ray_x, self.ray_y)
@@ -106,7 +103,7 @@ class Player:
     self.frame = 1
     self.last_update = pygame.time.get_ticks()
 
-  def move(self, laser):
+  def move(self):
     pressed_keys = pygame.key.get_pressed()
 
     # Detecting collision direction (so player will not move in that direction)
@@ -136,7 +133,6 @@ class Player:
       else:
         self.is_moving = True
         self.player_pos_y -= self.player_speed
-        laser.ray_y = self.player_pos_y
     if pressed_keys[pygame.K_s]:
       if collision_type["bottom"]:
         if self.player_pos_y < colliding_obstacle.top:
@@ -144,7 +140,6 @@ class Player:
       else:
         self.is_moving = True
         self.player_pos_y += self.player_speed
-        laser.ray_y = self.player_pos_y
     if pressed_keys[pygame.K_d]:
       if collision_type["right"]:
         if self.player_pos_y > colliding_obstacle.bottom:
@@ -152,7 +147,6 @@ class Player:
       else:
         self.is_moving = True
         self.player_pos_x += self.player_speed
-        laser.ray_x = self.player_pos_x
     if pressed_keys[pygame.K_a]:
       if collision_type["left"]:
         if self.player_pos_y > colliding_obstacle.bottom:
@@ -160,7 +154,6 @@ class Player:
       else:
         self.is_moving = True
         self.player_pos_x -= self.player_speed
-        laser.ray_x = self.player_pos_x
     if not pressed_keys[pygame.K_w] and not pressed_keys[pygame.K_s] and not pressed_keys[pygame.K_d] and not pressed_keys[pygame.K_a]:
       self.is_moving = False
 
@@ -177,6 +170,7 @@ class Player:
 
     self.rotate()
 
+  def render(self):
     self.player_rect.center = (self.player_pos_x, self.player_pos_y)
     screen.blit(self.player, self.player_rect)
   
@@ -249,27 +243,80 @@ class Level1(GameMap):
     self.add_collision("assets\students\student_1.png", 21 * TILE_SIZE, 4 * TILE_SIZE, "student")
 
     self.add_collision("assets\map\level_1\decoration\\book_shelf.png", 4 * TILE_SIZE, 1 * TILE_SIZE, "wall")
-
   
-  # def add_portal(self):
-    # portal = pygame.Rect(24 * 40, 4 * 40, 40, 5 * 40)
+  def add_portal(self):
+    portal = pygame.Rect(24 * 40, 4 * 40, 40, 5 * 40)
     # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
-    # self.portals.append((2, portal, (100, 4.5 * 40)))
+    self.portals.append((2, portal, (100, 4.5 * 40)))
 
 # Level2 Class
 class Level2(GameMap):
   def __init__(self):
-    super().__init__("level2.png")
+    super().__init__("assets\map\level_2\\floor.png")
 
   def add_collisions(self):
-    self.add_collision("assets\map\level_2\wall_1.png", 0, 0)
-    # self.add_collision("map_4.png", 0, 0)
-    # self.add_collision("map_1.png", 0, 9 * 40)
+    self.add_collision("assets\map\level_2\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_2\walls\wall_2.png", 17 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_2\decoration\chair.png", 4 * TILE_SIZE, 15 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\decoration\chair.png", 7 * TILE_SIZE, 15.5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\decoration\chair.png", 9.5 * TILE_SIZE, 15.3 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\decoration\chair.png", 13 * TILE_SIZE, 14.5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\decoration\chair.png", 15 * TILE_SIZE, 15.7 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\decoration\chair.png", 19 * TILE_SIZE, 15 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\decoration\\tables.png", 3 * TILE_SIZE, 16.5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_2\walls\wall_3.png", 0, 17 * TILE_SIZE, "wall")
+
+
+    self.add_collision("assets\students\student_1.png", 8 * TILE_SIZE, 4 * TILE_SIZE, "student")
   
-  # def add_portal(self):
-    # portal = pygame.Rect(0, 4 * 40, 40, 5 * 40)
+  def add_portal(self):
+    portal = pygame.Rect(8 * TILE_SIZE, 0, 9 * TILE_SIZE, 40)
     # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
-    # self.portals.append((1, portal))
+    self.portals.append((3, portal, (W // 2, H // 2)))
+
+# Level3 Class
+class Level3(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_3\\floor.png")
+
+  def add_collisions(self):
+    self.add_collision("assets\map\level_3\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_3\walls\wall_2.png", 0, 5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_3\walls\wall_3.png", 17 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_3\walls\wall_4.png", 21 * TILE_SIZE, 5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_3\walls\wall_5.png", 0, 21 * TILE_SIZE, "wall")
+
+    self.add_collision("assets\map\level_3\decoration\panini_center.png", 4 * TILE_SIZE, 9 * TILE_SIZE, "wall")
+  
+  def add_portal(self):
+    portal = pygame.Rect(8 * TILE_SIZE, 0, 9 * TILE_SIZE, 40)
+    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
+    self.portals.append((2, portal, (W // 2, H // 2)))
+
+    portal = pygame.Rect(24 * TILE_SIZE, 15 * TILE_SIZE, TILE_SIZE, 6 * TILE_SIZE)
+    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
+    self.portals.append((4, portal, (W // 2, H // 2)))
+
+# Level4 Class
+class Level4(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_4\\floor.png")
+
+  def add_collisions(self):
+    self.add_collision("assets\map\level_4\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_4\walls\wall_2.png", 9 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_4\walls\wall_3.png", 23 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_4\walls\wall_4.png", 15 * TILE_SIZE, 15 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_4\walls\wall_5.png", 0, 21 * TILE_SIZE, "wall")
+  
+  def add_portal(self):
+    portal = pygame.Rect(8 * TILE_SIZE, 0, 9 * TILE_SIZE, 40)
+    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
+    self.portals.append((2, portal, (W // 2, H // 2)))
+
+    portal = pygame.Rect(24 * TILE_SIZE, 15 * TILE_SIZE, TILE_SIZE, 6 * TILE_SIZE)
+    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
+    self.portals.append((4, portal, (W // 2, H // 2)))
 
 def get_mouse_angle():
   mousePos = pygame.mouse.get_pos()
@@ -327,15 +374,50 @@ def collide_rect_polygon(rect, polygon):
             return collision_pos
     return None
 
-# Initializing
-current_level = 1
+class Cake:
+  def __init__(self):
+    self.cake = pygame.image.load("assets\cake\cake.png")
+    self.cake = pygame.transform.scale(self.cake, (self.cake.get_width() * 4, self.cake.get_height() * 4))
+    self.cake_rect = self.cake.get_rect()
 
-initial_pos_x = 250
-initial_pos_y = 250
+    self.radius = 50
+    self.angle = 0
+
+    self.cake_x = 0
+    self.cake_y = 0
+  
+  def move(self, player_pos_x, player_pos_y):
+    self.angle = get_mouse_angle()
+    self.cake_x = self.radius * math.cos(math.radians(-self.angle)) + player_pos_x
+    self.cake_y = self.radius * math.sin(math.radians(-self.angle)) + player_pos_y
+
+  def render(self):
+    self.cake_rect.center = (self.cake_x, self.cake_y)
+    screen.blit(self.cake, self.cake_rect)
+
+class GameOverScreen:
+  def __init__(self):
+    # self.background = pygame.image.load("assets\\UI\lose_screen\lose_screen.png")
+    # self.background_rect = self.background.get_rect()
+    self.font = pygame.font.Font("assets\\fonts\pixel.ttf", 75)
+    self.text = self.font.render("YOU LOSE!!! ;(", True, (255, 255, 255))
+  
+  def update(self):
+    # screen.blit(self.background, self.background_rect)
+    screen.blit(self.text, (W / 2 - self.text.get_width() / 2, H / 2 - self.text.get_height() / 2))
+
+# Initializing
+current_level = 2
+
+initial_pos_x = W // 2
+initial_pos_y = H // 2
 
 player = Player(initial_pos_x, initial_pos_y)
 laser = Laser(player.player_pos_x, player.player_pos_y)
-gameMap = Level1()
+cake = Cake()
+gameMap = Level2()
+
+game_over_screen = GameOverScreen()
 
 # Importing transition
 transition = pygame.image.load("assets\\transition.png")
@@ -345,31 +427,71 @@ transition_rect.topleft = (W, 0)
 transition_x = W
 is_transition = False
 
+fl_game_over = False
+
 # Adding collision detectors to collision objects (Walls, Students, etc)
 gameMap.add_collisions()
 
 # Rendering portals to travel between levels
-# gameMap.add_portal()
+gameMap.add_portal()
+
+def restart():
+  global fl_game_over, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap
+
+  # Initializing
+  current_level = 2
+
+  initial_pos_x = W // 2
+  initial_pos_y = H // 2
+
+  player = Player(initial_pos_x, initial_pos_y)
+  laser = Laser(player.player_pos_x, player.player_pos_y)
+  cake = Cake()
+  gameMap = Level2()
+
+  # Adding collision detectors to collision objects (Walls, Students, etc)
+  gameMap.add_collisions()
+
+  # Rendering portals to travel between levels
+  gameMap.add_portal()
+
+  fl_game_over = False
 
 while not done:
   for event in pygame.event.get():
     if event.type == pygame.QUIT:
       done = True
+    if event.type == pygame.KEYDOWN:
+      if event.key == pygame.K_r and fl_game_over:
+        is_transition = True
 
   # Drawing map (without collisions)
   gameMap.update()
   
   player.add_shadow()
-  # Priority of layer of laser and player
-  if player.direction == "down":
-    player.move(laser)
-    laser.update()
-  else:
-    laser.update()
-    player.move(laser)
 
   # Rendering collision objects (Walls, Students, etc)
   gameMap.render_collision()
+
+  # Priority of layer of laser and player
+  if player.direction == "down":
+    if not fl_game_over:
+      player.move()
+      laser.move(player.player_pos_x, player.player_pos_y)
+      cake.move(player.player_pos_x, player.player_pos_y)
+
+    player.render()
+    laser.render()
+    cake.render()
+  else:
+    if not fl_game_over:
+      laser.move(player.player_pos_x, player.player_pos_y)
+      cake.move(player.player_pos_x, player.player_pos_y)
+      player.move()
+  
+    laser.render()
+    cake.render()
+    player.render()
   
   fl_collision = False
 
@@ -385,7 +507,6 @@ while not done:
       closest_collision_distance = ray_length
       closest_collision = obstacle_rect
       closest_collision_type = "wall"
-
   for (student, student_rect) in gameMap.students:
     laser.detect_collision(student_rect)
     ray_length = laser.ray_length
@@ -396,35 +517,47 @@ while not done:
   
   if closest_collision:
     if closest_collision_type == "student":
-      print("You lose")
+      fl_game_over = True
 
     laser.detect_collision(closest_collision)
     laser.add_splash()
   
   # Collision detection of portals to travel between levels
-  # for portal in gameMap.portals:
-  #   if pygame.Rect.colliderect(player.player_rect, portal[1]):
-  #     current_level = portal[0]
-  #     initial_pos_x, initial_pos_y = portal[2]
-  #     is_transition = True
-
+  for portal in gameMap.portals:
+    if pygame.Rect.colliderect(player.player_rect, portal[1]):
+      current_level = portal[0]
+      initial_pos_x, initial_pos_y = portal[2]
+      is_transition = True
+  
   # Transition between levels
   if is_transition:
     transition_x -= 35
     transition_rect.topleft = (transition_x, 0)
     screen.blit(transition, transition_rect)
-    
     spike_width = 140
     if transition_x <= -spike_width:
       player = Player(initial_pos_x, initial_pos_y)
       laser = Laser(initial_pos_x, initial_pos_y)
-  
+
+      if fl_game_over:
+        restart()
+
       if current_level == 1:
         gameMap = Level1()
       if current_level == 2:
         gameMap = Level2()
+      if current_level == 3:
+        gameMap = Level3()
+      if current_level == 4:
+        gameMap = Level4()
+      gameMap.add_portal()
+      gameMap.add_collisions()
     if transition_x <= -(W + 2 * spike_width):
       is_transition = False
+      transition_x = W
+
+  if fl_game_over:
+    game_over_screen.update()
 
   pygame.display.flip()
   clock.tick(FPS)
