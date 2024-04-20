@@ -1,7 +1,7 @@
 import pygame
 import math
+import random
 pygame.init()
-
 
 done = False
 clock = pygame.time.Clock()
@@ -41,6 +41,10 @@ class Laser:
 
     self.angle = 0
     self.collision_pos = None
+
+    self.is_visible = True
+    self.visibility_delay = 250
+    self.last_update = pygame.time.get_ticks()
   
   def move(self, player_pos_x, player_pos_y):
     self.ray_x = player_pos_x
@@ -54,6 +58,12 @@ class Laser:
     self.ray_point_2 = (self.ray_x - 4.5 * math.cos(math.radians(90 - self.angle)), self.ray_y - 4.5 * 4 * math.sin(math.radians(90 - self.angle)))
     self.ray_point_3 = (self.ray_x + 500 * math.cos(math.radians(self.angle)), self.ray_y - 500 * math.sin(math.radians(self.angle)))
 
+  def make_visible(self):
+    current_time = pygame.time.get_ticks()
+    if current_time - self.last_update >= self.visibility_delay:
+      self.is_visible = True
+      self.last_update = current_time
+
   def render(self):
     # Scaling the laser by length (in order to make it shorter when it collides with object)
     self.scaled_laser = pygame.transform.scale(self.laser, (self.ray_length, self.laser.get_height()))
@@ -65,7 +75,8 @@ class Laser:
     self.rotated_laser_rect = self.rotated_laser.get_rect()
     self.rotated_laser_rect.center = (self.ray_x, self.ray_y)
 
-    screen.blit(self.rotated_laser, self.rotated_laser_rect)
+    if self.is_visible:
+      screen.blit(self.rotated_laser, self.rotated_laser_rect)
   
   # Collision detection
   def detect_collision(self, rect):
@@ -82,7 +93,9 @@ class Laser:
     if self.collision_pos:
       self.rotated_splash_rect = self.rotated_splash.get_rect()
       self.rotated_splash_rect.center = self.collision_pos
-      screen.blit(self.rotated_splash, self.rotated_splash_rect)
+
+      if self.is_visible:
+        screen.blit(self.rotated_splash, self.rotated_splash_rect)
 
 # Player Class
 class Player:
@@ -102,6 +115,13 @@ class Player:
     self.animation_cooldown = 250
     self.frame = 1
     self.last_update = pygame.time.get_ticks()
+
+    self.footstep_audio_1 = pygame.mixer.Sound("assets\\audio\\footstep_1.mp3")
+    self.footstep_audio_2 = pygame.mixer.Sound("assets\\audio\\footstep_2.mp3")
+    self.footstep_audio_3 = pygame.mixer.Sound("assets\\audio\\footstep_3.mp3")
+    self.footstep_audio_1.set_volume(0.5)
+    self.footstep_audio_2.set_volume(0.5)
+    self.footstep_audio_3.set_volume(0.5)
 
   def move(self):
     pressed_keys = pygame.key.get_pressed()
@@ -186,6 +206,16 @@ class Player:
       current_time = pygame.time.get_ticks()
       if current_time - self.last_update >= self.animation_cooldown:
         self.frame += 1
+
+        rand = random.randint(1, 3)
+        
+        if rand == 1:
+          self.footstep_audio_1.play()
+        if rand == 2:
+          self.footstep_audio_2.play()
+        if rand == 3:
+          self.footstep_audio_3.play()
+
         if self.frame > 2:
           self.frame = 1
         self.last_update = current_time
@@ -265,9 +295,6 @@ class Level2(GameMap):
     self.add_collision("assets\map\level_2\decoration\chair.png", 19 * TILE_SIZE, 15 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_2\decoration\\tables.png", 3 * TILE_SIZE, 16.5 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_2\walls\wall_3.png", 0, 17 * TILE_SIZE, "wall")
-
-
-    self.add_collision("assets\students\student_1.png", 8 * TILE_SIZE, 4 * TILE_SIZE, "student")
   
   def add_portal(self):
     portal = pygame.Rect(8 * TILE_SIZE, 0, 9 * TILE_SIZE, 40)
@@ -284,18 +311,23 @@ class Level3(GameMap):
     self.add_collision("assets\map\level_3\walls\wall_2.png", 0, 5 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_3\walls\wall_3.png", 17 * TILE_SIZE, 0, "wall")
     self.add_collision("assets\map\level_3\walls\wall_4.png", 21 * TILE_SIZE, 5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_3\decoration\chairs.png", 8 * TILE_SIZE, 20 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_3\decoration\chairs.png", 15 * TILE_SIZE, 20 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_3\walls\wall_5.png", 0, 21 * TILE_SIZE, "wall")
-
     self.add_collision("assets\map\level_3\decoration\panini_center.png", 4 * TILE_SIZE, 9 * TILE_SIZE, "wall")
+    self.add_collision("assets\students\student_1.png", 5 * TILE_SIZE, 14 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 19 * TILE_SIZE, 10 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_3.png", 18 * TILE_SIZE, 12 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 19.5 * TILE_SIZE, 13 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 19.5 * TILE_SIZE, 19 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_3.png", 6.5 * TILE_SIZE, 19 * TILE_SIZE, "student")
   
   def add_portal(self):
     portal = pygame.Rect(8 * TILE_SIZE, 0, 9 * TILE_SIZE, 40)
-    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
     self.portals.append((2, portal, (W // 2, H // 2)))
 
     portal = pygame.Rect(24 * TILE_SIZE, 15 * TILE_SIZE, TILE_SIZE, 6 * TILE_SIZE)
-    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
-    self.portals.append((4, portal, (W // 2, H // 2)))
+    self.portals.append((4, portal, (2 * TILE_SIZE, 18 * TILE_SIZE)))
 
 # Level4 Class
 class Level4(GameMap):
@@ -308,15 +340,159 @@ class Level4(GameMap):
     self.add_collision("assets\map\level_4\walls\wall_3.png", 23 * TILE_SIZE, 0, "wall")
     self.add_collision("assets\map\level_4\walls\wall_4.png", 15 * TILE_SIZE, 15 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_4\walls\wall_5.png", 0, 21 * TILE_SIZE, "wall")
+    self.add_collision("assets\students\student_1.png", 10 * TILE_SIZE, 10 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 21.5 * TILE_SIZE, 12 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_3.png", 21 * TILE_SIZE, 8 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 13.5 * TILE_SIZE, 19 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 17.5 * TILE_SIZE, 5 * TILE_SIZE, "student")
   
   def add_portal(self):
-    portal = pygame.Rect(8 * TILE_SIZE, 0, 9 * TILE_SIZE, 40)
-    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
-    self.portals.append((2, portal, (W // 2, H // 2)))
+    portal = pygame.Rect(0, 15 * TILE_SIZE, TILE_SIZE, 6 * TILE_SIZE)
+    self.portals.append((3, portal, (23 * TILE_SIZE, 18 * TILE_SIZE)))
 
-    portal = pygame.Rect(24 * TILE_SIZE, 15 * TILE_SIZE, TILE_SIZE, 6 * TILE_SIZE)
-    # pygame.draw.rect(screen, (255, 0, 0), portal, 5)
-    self.portals.append((4, portal, (W // 2, H // 2)))
+    portal = pygame.Rect(17 * TILE_SIZE, 0, 6 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((5, portal, (12 * TILE_SIZE, 22 * TILE_SIZE)))
+
+class Level5(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_5\\floor.png")
+  
+  def add_collisions(self):
+    self.add_collision("assets\map\level_5\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_5\walls\wall_2.png", 16 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_5\decoration\chair_1.png", 9 * TILE_SIZE, 2 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_5\decoration\chair_2.png", 9 * TILE_SIZE, 9 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_5\decoration\chair_3.png", 9 * TILE_SIZE, 16 * TILE_SIZE, "wall")
+    self.add_collision("assets\students\student_1.png", 9.75 * TILE_SIZE, 6 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 9.5 * TILE_SIZE, 8 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_3.png", 14.5 * TILE_SIZE, 2 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 14 * TILE_SIZE, 21 * TILE_SIZE, "student")
+
+  def add_portal(self):
+    portal = pygame.Rect(9 * TILE_SIZE, 0, 7 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((6, portal, (12 * TILE_SIZE, 22 * TILE_SIZE)))
+
+    portal = pygame.Rect(9 * TILE_SIZE, 24 * TILE_SIZE, 7 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((4, portal, (20 * TILE_SIZE, 2 * TILE_SIZE)))
+
+class Level6(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_6\\floor.png")
+  
+  def add_collisions(self):
+    self.add_collision("assets\map\level_6\walls\wall_1.png", 4 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_6\walls\wall_2.png", 0, 15 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_6\walls\wall_3.png", 16 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_6\decoration\chair.png", 9 * TILE_SIZE, 20 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_6\decoration\chair.png", 9 * TILE_SIZE, 3 * TILE_SIZE, "wall")
+
+  def add_portal(self):
+    portal = pygame.Rect(0, 8 * TILE_SIZE, 4 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((7, portal, (21 * TILE_SIZE, 14 * TILE_SIZE)))
+
+    portal = pygame.Rect(9 * TILE_SIZE, 24 * TILE_SIZE, 7 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((5, portal, (12 * TILE_SIZE, 2 * TILE_SIZE)))
+
+class Level7(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_7\\floor.png")
+  
+  def add_collisions(self):
+    self.add_collision("assets\map\level_7\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_2.png", 0, 7 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_3.png", 0, 14 *  TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_4.png", 0, 16 *  TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_5.png", 0, 23 *  TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_6.png", 4 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_7.png", 12 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_8.png", 17 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_7\walls\wall_9.png", 12 * TILE_SIZE, 13 * TILE_SIZE, "wall")
+    self.add_collision("assets\students\student_1.png", 10.5 * TILE_SIZE, 5.5 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 4.5 * TILE_SIZE, 14.25 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_3.png", 5.25 * TILE_SIZE, 17 * TILE_SIZE, "student")
+
+  def add_portal(self):
+    portal = pygame.Rect(17 * TILE_SIZE, 16 * TILE_SIZE, 8 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((6, portal, (2 * TILE_SIZE, 10 * TILE_SIZE)))
+
+    portal = pygame.Rect(4 * TILE_SIZE, 24 * TILE_SIZE, 8 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((8, portal, (8 * TILE_SIZE, 2 * TILE_SIZE)))
+
+class Level8(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_8\\floor.png")
+  
+  def add_collisions(self):
+    self.add_collision("assets\map\level_8\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_8\walls\wall_2.png", 0, 18 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_8\walls\wall_3.png", 12 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_8\walls\wall_4.png", 18 * TILE_SIZE, 18 * TILE_SIZE, "wall")
+    self.add_collision("assets\students\student_1.png", 12.5 * TILE_SIZE, 10.25 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_2.png", 19.25 * TILE_SIZE, 15.75 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_3.png", 11.25 * TILE_SIZE, 21 * TILE_SIZE, "student")
+
+  def add_portal(self):
+    portal = pygame.Rect(7 * TILE_SIZE, 0, 7 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((7, portal, (8 * TILE_SIZE, 23 * TILE_SIZE)))
+
+    portal = pygame.Rect(11 * TILE_SIZE, 24 * TILE_SIZE, 7 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((9, portal, (12 * TILE_SIZE, 2 * TILE_SIZE)))
+
+class Level9(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_9\\floor.png")
+  
+  def add_collisions(self):
+    self.add_collision("assets\map\level_9\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_9\walls\wall_2.png", 0, 5 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\walls\wall_3.png", 0, 13 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\walls\wall_4.png", 18 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_9\walls\wall_5.png", 0, 24 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_1.png", 16 * TILE_SIZE, 4 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_1.png", 16 * TILE_SIZE, 5.75 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_1.png", 16 * TILE_SIZE, 9 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_1.png", 16 * TILE_SIZE, 14 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_1.png", 16 * TILE_SIZE, 17 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_2.png", 7 * TILE_SIZE, 15.2 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\chair_2.png", 6.75 * TILE_SIZE, 17 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_9\decoration\\table_1.png", 16.75 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_9\decoration\\table_2.png", 6 * TILE_SIZE, 15 * TILE_SIZE, "wall")
+    self.add_collision("assets\students\student_1.png", 15 * TILE_SIZE, 2 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 14.75 * TILE_SIZE, 7.5 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 15 * TILE_SIZE, 11.5 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 14.65 * TILE_SIZE, 16 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 6.25 * TILE_SIZE, 13.25 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 7  * TILE_SIZE, 22 * TILE_SIZE, "student")
+    self.add_collision("assets\students\student_1.png", 14  * TILE_SIZE, 22.25 * TILE_SIZE, "student")
+
+  def add_portal(self):
+    portal = pygame.Rect(6 * TILE_SIZE, 0, 12 * TILE_SIZE, TILE_SIZE)
+    self.portals.append((8, portal, (14 * TILE_SIZE, 23 * TILE_SIZE)))
+
+    portal = pygame.Rect(0, 21 * TILE_SIZE, TILE_SIZE, 3 * TILE_SIZE)
+    self.portals.append((10, portal, (23 * TILE_SIZE, 7 * TILE_SIZE)))
+
+class Level10(GameMap):
+  def __init__(self):
+    super().__init__("assets\map\level_10\\floor.png")
+  
+  def add_collisions(self):
+    self.add_collision("assets\map\level_10\walls\wall_1.png", 0, 0, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_2.png", 0, 11 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_3.png", 0, 17 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_4.png", 14 * TILE_SIZE, 0, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_5.png", 19 * TILE_SIZE, 8 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_6.png", 18 * TILE_SIZE, 11 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_7.png", 21 * TILE_SIZE, 17 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_8.png", 12 * TILE_SIZE, 24 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\walls\wall_9.png", 5 * TILE_SIZE, 24 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\decoration\chair.png", 6 * TILE_SIZE, 17.75 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\decoration\chair.png", 5.75 * TILE_SIZE, 19.1 * TILE_SIZE, "wall")
+    self.add_collision("assets\map\level_10\decoration\\table.png", 5 * TILE_SIZE, 17 * TILE_SIZE, "wall")
+
+  def add_portal(self):
+    portal = pygame.Rect(24 * TILE_SIZE, 5 * TILE_SIZE, TILE_SIZE, 3 * TILE_SIZE)
+    self.portals.append((9, portal, (3 * TILE_SIZE, 23 * TILE_SIZE)))
 
 def get_mouse_angle():
   mousePos = pygame.mouse.get_pos()
@@ -375,16 +551,17 @@ def collide_rect_polygon(rect, polygon):
     return None
 
 class Cake:
-  def __init__(self):
+  def __init__(self, x, y):
     self.cake = pygame.image.load("assets\cake\cake.png")
     self.cake = pygame.transform.scale(self.cake, (self.cake.get_width() * 4, self.cake.get_height() * 4))
     self.cake_rect = self.cake.get_rect()
+    self.cake_rect.center = (x, y)
 
     self.radius = 50
     self.angle = 0
 
-    self.cake_x = 0
-    self.cake_y = 0
+    self.cake_x = x
+    self.cake_y = y
   
   def move(self, player_pos_x, player_pos_y):
     self.angle = get_mouse_angle()
@@ -414,13 +591,24 @@ initial_pos_y = H // 2
 
 player = Player(initial_pos_x, initial_pos_y)
 laser = Laser(player.player_pos_x, player.player_pos_y)
-cake = Cake()
+cake = Cake(player.player_pos_x, player.player_pos_y)
 gameMap = Level2()
 
 game_over_screen = GameOverScreen()
 
+background_music = pygame.mixer.Sound("assets\\audio\\background_music.mp3")
+background_music.play(-1)
+
+transition_audio = pygame.mixer.Sound("assets\\audio\\transition.mp3")
+transition_audio.set_volume(0.5)
+is_transition_audio_playing = False
+
+game_over_audio = pygame.mixer.Sound("assets\\audio\\game_over.mp3")
+game_over_audio.set_volume(0.5)
+is_game_over_audio_playing = False
+
 # Importing transition
-transition = pygame.image.load("assets\\transition.png")
+transition = pygame.image.load("assets\\UI\\transition\\transition.png")
 transition = pygame.transform.scale(transition, (transition.get_width() * 4, transition.get_height() * 4))
 transition_rect = transition.get_rect()
 transition_rect.topleft = (W, 0)
@@ -428,6 +616,7 @@ transition_x = W
 is_transition = False
 
 fl_game_over = False
+fl_game_restart = False
 
 # Adding collision detectors to collision objects (Walls, Students, etc)
 gameMap.add_collisions()
@@ -436,7 +625,7 @@ gameMap.add_collisions()
 gameMap.add_portal()
 
 def restart():
-  global fl_game_over, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap
+  global fl_game_over, fl_game_restart, is_game_over_audio_playing, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap
 
   # Initializing
   current_level = 2
@@ -446,7 +635,7 @@ def restart():
 
   player = Player(initial_pos_x, initial_pos_y)
   laser = Laser(player.player_pos_x, player.player_pos_y)
-  cake = Cake()
+  cake = Cake(player.player_pos_x, player.player_pos_y)
   gameMap = Level2()
 
   # Adding collision detectors to collision objects (Walls, Students, etc)
@@ -456,6 +645,9 @@ def restart():
   gameMap.add_portal()
 
   fl_game_over = False
+  fl_game_restart = False
+
+  is_game_over_audio_playing = False
 
 while not done:
   for event in pygame.event.get():
@@ -464,6 +656,7 @@ while not done:
     if event.type == pygame.KEYDOWN:
       if event.key == pygame.K_r and fl_game_over:
         is_transition = True
+        fl_game_restart = True
 
   # Drawing map (without collisions)
   gameMap.update()
@@ -475,7 +668,7 @@ while not done:
 
   # Priority of layer of laser and player
   if player.direction == "down":
-    if not fl_game_over:
+    if not fl_game_over and not is_transition:
       player.move()
       laser.move(player.player_pos_x, player.player_pos_y)
       cake.move(player.player_pos_x, player.player_pos_y)
@@ -484,7 +677,7 @@ while not done:
     laser.render()
     cake.render()
   else:
-    if not fl_game_over:
+    if not fl_game_over and not is_transition:
       laser.move(player.player_pos_x, player.player_pos_y)
       cake.move(player.player_pos_x, player.player_pos_y)
       player.move()
@@ -492,6 +685,8 @@ while not done:
     laser.render()
     cake.render()
     player.render()
+  
+  laser.make_visible()
   
   fl_collision = False
 
@@ -516,7 +711,10 @@ while not done:
       closest_collision_type = "student"
   
   if closest_collision:
-    if closest_collision_type == "student":
+    if closest_collision_type == "student" and laser.is_visible:
+      if not is_game_over_audio_playing:
+        game_over_audio.play()
+        is_game_over_audio_playing = True
       fl_game_over = True
 
     laser.detect_collision(closest_collision)
@@ -531,6 +729,10 @@ while not done:
   
   # Transition between levels
   if is_transition:
+    if not is_transition_audio_playing:
+      transition_audio.play()
+      is_transition_audio_playing = True
+
     transition_x -= 35
     transition_rect.topleft = (transition_x, 0)
     screen.blit(transition, transition_rect)
@@ -538,8 +740,10 @@ while not done:
     if transition_x <= -spike_width:
       player = Player(initial_pos_x, initial_pos_y)
       laser = Laser(initial_pos_x, initial_pos_y)
+      cake = Cake(initial_pos_x, initial_pos_y)
+      laser.is_visible = False
 
-      if fl_game_over:
+      if fl_game_over and fl_game_restart:
         restart()
 
       if current_level == 1:
@@ -550,9 +754,25 @@ while not done:
         gameMap = Level3()
       if current_level == 4:
         gameMap = Level4()
+      if current_level == 5:
+        gameMap = Level5()
+      if current_level == 6:
+        gameMap = Level6()
+      if current_level == 7:
+        gameMap = Level7()
+      if current_level == 8:
+        gameMap = Level8()
+      if current_level == 9:
+        gameMap = Level9()
+      if current_level == 10:
+        gameMap = Level10()
+
+      laser.move(initial_pos_x, initial_pos_y)
+      cake.move(initial_pos_y, initial_pos_y)
       gameMap.add_portal()
       gameMap.add_collisions()
     if transition_x <= -(W + 2 * spike_width):
+      is_transition_audio_playing = False
       is_transition = False
       transition_x = W
 
