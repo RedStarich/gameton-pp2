@@ -57,21 +57,7 @@ far_leave_dan = pygame.image.load("assets/daniyar/far_leave.png")
 
 daniyar = [kb, far_dan, mid_dan, close_dan, mid_leave_dan, far_leave_dan]
 
-#character list
-good_characters = [altair]
-bad_characters = [daniyar]
-
-characters = []
-gch = 0
-bch = 0
-
-for i in range(len(good_characters)+len(bad_characters)):
-    if i%2==0 and gch < len(good_characters):
-        characters.append(good_characters[gch])
-        gch += 1
-    else:
-        characters.append(bad_characters[bch])
-        bch += 1
+characters = [altair, altair, altair, altair, altair]
 
 character = 0
 character_position = 0
@@ -90,8 +76,10 @@ delayer = 0
 
 running = True
 winning = False
+pygame.mixer.music.set_volume(0.2)
+pygame.mixer.Sound('assets/music/bgsong.mp3').play()
 
-while running and character < 2:
+while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -100,47 +88,53 @@ while running and character < 2:
                 running = False
         
 
-    key = pygame.key.get_pressed()
-    if key[pygame.K_SPACE] and character_position == 3 and characters[character] in good_characters:
-        SCORE += 1
-        character_position = 0
-        characters.pop(character)
-        character += 1
+    if character >= len(characters):
+        bg = winscreen
+    else:
+        key = pygame.key.get_pressed()
+        if key[pygame.K_SPACE] and character_position == 3:
+            pygame.mixer.music.set_volume(0.01)
+            pygame.mixer.Sound('assets/music/ypi.mp3').play()
+            SCORE += 1
+            character_position = 0
+            character += 1
 
 
-    if key[pygame.K_LEFT]:
-        if character_position > 3 and character_position <= 5:
-            bg = characters[character][character_position]
+        if key[pygame.K_LEFT]:
+            if character_position > 3 and character_position <= 5:
+                bg = characters[character][character_position]
+            else:
+                bg = pf
+
+        elif key[pygame.K_RIGHT]:
+            if character_position > 5:
+                character_position = 0
+
+            if character_position < 3 and character < len(characters):
+                bg = characters[character][character_position]
+            else:
+                bg = kb
         else:
-            bg = pf
+            if character_position != 3:
+                bg = office_bg
+            else:
+                if character < len(characters):
+                    bg = characters[character][character_position]
 
-    elif key[pygame.K_RIGHT]:
         if character_position > 5:
             character_position = 0
+        
+        if delayer%5==0:
+            character_position += 1
+            delayer = 1
+        delayer += 1
 
-        if character_position < 3 and character < len(characters):
-            bg = characters[character][character_position]
-        else:
-            bg = kb
-    else:
-        if character_position != 3:
-            bg = office_bg
-        else:
-            if character < len(characters):
-                bg = characters[character][character_position]
+        
 
-    if character_position > 5:
-        character_position = 0
-    
-    if delayer%5==0:
-        character_position += 1
-        delayer = 1
-    delayer += 1
 
 
     DISPLAYSURF.blit(bg, (0,0))
-
-    score = font_small.render(str(SCORE), True, BLACK)
+    score = font_small.render(str(SCORE), True, WHITE)
     DISPLAYSURF.blit(score, (10,10))
 
     pygame.display.update()
