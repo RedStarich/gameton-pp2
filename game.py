@@ -21,6 +21,11 @@ from classes.MainMenu.MainMenu import MainMenu
 
 pygame.init()
 
+# Changing icon and caption of the game
+icon = pygame.image.load("assets\icon\icon.png") 
+pygame.display.set_icon(icon)
+pygame.display.set_caption("X-Day") 
+
 # Constants
 FPS = 60
 W = H = 1000
