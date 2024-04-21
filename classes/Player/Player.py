@@ -102,16 +102,24 @@ class Player:
     if not pressed_keys[pygame.K_w] and not pressed_keys[pygame.K_s] and not pressed_keys[pygame.K_d] and not pressed_keys[pygame.K_a]:
       self.is_moving = False
 
-    # Rotation player accourding to the angle
+    # Rotation player according to the angle
     angle = get_mouse_angle(self.laser)
-    if 315 <= angle and angle < 360 or 0 <= angle and angle < 45:
+    if 337.5 <= angle and angle < 360 or 0 <= angle and angle < 22.5:
       self.direction = "right"
-    elif 45 <= angle and angle < 135:
+    elif 22.5 <= angle and angle < 67.5:
+      self.direction = "up_right"
+    elif 67.5 <= angle and angle < 112.5:
       self.direction = "up"
-    elif 145 <= angle and angle < 225:
+    elif 112.5 <= angle and angle < 157.5:
+      self.direction = "up_left"
+    elif 157.5 <= angle and angle < 202.5:
       self.direction = "left"
-    elif 225 <= angle and angle < 315:
+    elif 202.5 <= angle and angle < 247.5:
+      self.direction = "down_left"
+    elif 247.5 <= angle and angle < 292.5:
       self.direction = "down"
+    elif 292.5 <= angle and angle < 337.5:
+      self.direction = "down_right"
 
     self.rotate()
 

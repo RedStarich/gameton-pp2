@@ -4,6 +4,7 @@ from classes.GameMap.GameMap import GameMap
 W = H = 1000
 TILE_SIZE = 40
 
+# Level8 Class
 class Level8(GameMap):
   def __init__(self, screen):
     super().__init__("assets\map\level_8\\floor.png", screen)

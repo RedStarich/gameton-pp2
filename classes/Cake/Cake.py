@@ -17,12 +17,14 @@ class Cake:
 
     self.cake_x = x
     self.cake_y = y
-  
+
+  # Moving Cake
   def move(self, player_pos_x, player_pos_y):
     self.angle = get_mouse_angle(self.laser)
     self.cake_x = self.radius * math.cos(math.radians(-self.angle)) + player_pos_x
     self.cake_y = self.radius * math.sin(math.radians(-self.angle)) + player_pos_y
 
+  # Rendering Cake
   def render(self):
     self.cake_rect.center = (self.cake_x, self.cake_y)
     self.screen.blit(self.cake, self.cake_rect)

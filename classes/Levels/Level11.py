@@ -4,6 +4,7 @@ from classes.GameMap.GameMap import GameMap
 W = H = 1000
 TILE_SIZE = 40
 
+# Level11 Class
 class Level11(GameMap):
   def __init__(self, screen):
     super().__init__("assets\map\level_11\\floor.png", screen)
@@ -24,11 +25,12 @@ class Level11(GameMap):
     self.add_collision("assets\map\level_11\decoration\\tables_group_8.png", 16.2 * TILE_SIZE, 19 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_11\decoration\\board.png", 3.4 * TILE_SIZE, 5.6 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_11\decoration\\teachers_table.png", 19 * TILE_SIZE, 6 * TILE_SIZE, "wall")
-    self.add_collision("assets\students\student_1_right.png", 12 * TILE_SIZE, 7 * TILE_SIZE, "teacher")
+    self.add_collision("assets\\teacher\Kelgenbayev_Arnur.png", 12 * TILE_SIZE, 7 * TILE_SIZE, "teacher")
 
   def render_collision(self):
     super().render_collision()
     teacher_image, teacher_rect = self.teacher
+    self.add_shadow(teacher_rect)
     self.screen.blit(teacher_image, teacher_rect)
 
   def add_portal(self):

@@ -28,11 +28,15 @@ class GameOverScreen:
     self.game_over_y = H
     self.is_game_over = False
   
+  # Change button state if it was clicked
   def click_button(self):
     self.current_button = 2
     self.click_sound.play()
 
+  # Rendering and moving GameOverScreen
   def render(self):
+    self.play_audio()
+
     self.background_rect.top = self.game_over_y
     self.screen.blit(self.background, self.background_rect)
 

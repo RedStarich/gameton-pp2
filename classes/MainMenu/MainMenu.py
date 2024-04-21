@@ -24,10 +24,12 @@ class MainMenu:
 
     self.click_sound = pygame.mixer.Sound("assets\\audio\click.mp3")
   
+  # Change button state if it was clicked
   def click_button(self):
     self.current_button = 2
     self.click_sound.play()
 
+  # Rendering and moving MainMenu
   def render(self):
     self.screen.blit(self.background, self.background_rect)
     

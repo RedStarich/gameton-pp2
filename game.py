@@ -1,4 +1,6 @@
 import pygame
+
+# Import of modules
 from classes.Laser.Laser import Laser
 from classes.Cake.Cake import Cake
 from classes.Player.Player import Player
@@ -19,18 +21,19 @@ from classes.MainMenu.MainMenu import MainMenu
 
 pygame.init()
 
-done = False
-clock = pygame.time.Clock()
+# Constants
 FPS = 60
 W = H = 1000
 TILE_SIZE = 40
 
+# Initializing main variables
+done = False
+clock = pygame.time.Clock()
 screen = pygame.display.set_mode((W, H))
 font = pygame.font.Font("assets\\fonts\pixel.ttf", 25)
 
 pygame.mouse.set_cursor(pygame.cursors.broken_x)
 
-# Initializing
 current_level = 2
 
 initial_pos_x = W // 2
@@ -62,11 +65,15 @@ transition_rect.topleft = (W, 0)
 transition_x = W
 is_transition = False
 
-fl_game_restart = False
+is_game_restart = False
 
+# List which value at the index shows if candle is collected in order to not to spawn in again
+# 0 - collected
+# 1 - not collected
 available_candles = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
 candles_score = 0
 
+# Updating and rendering candles score
 def update_candles_score():
   candles_text = font.render(f"{candles_score}/9", True, (255, 255, 255))
   candles_icon = pygame.image.load("assets\\UI\candles\candles_icon.png")
@@ -84,10 +91,11 @@ gameMap.add_collisions(available_candles[current_level])
 # Rendering portals to travel between levels
 gameMap.add_portal()
 
+# Restart logic
 def restart():
-  global fl_game_restart, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap, available_candles, candles_score, game_over_screen
+  global is_game_restart, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap, available_candles, candles_score, game_over_screen, background_music
 
-  # Initializing
+  # Reseting values
   current_level = 2
 
   initial_pos_x = W // 2
@@ -101,39 +109,39 @@ def restart():
   available_candles = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
   candles_score = 0
 
-  # Adding collision detectors to collision objects (Walls, Students, etc)
   gameMap.add_collisions(available_candles[current_level])
 
-  # Rendering portals to travel between levels
   gameMap.add_portal()
 
   game_over_screen = GameOverScreen(screen)
   game_over_screen.is_audio_playing = False
-  fl_game_restart = False
+  is_game_restart = False
 
+  background_music.play(-1)
+
+# Main part
 while not done:
   for event in pygame.event.get():
     if event.type == pygame.QUIT:
       done = True
-    if event.type == pygame.KEYDOWN:
-      if event.key == pygame.K_r and game_over_screen.is_game_over:
-        is_transition = True
-        fl_game_restart = True
     if event.type == pygame.MOUSEBUTTONDOWN:
       x, y = pygame.mouse.get_pos()
 
+      # Check if "PLAY!" button in the main menu was clicked
       if pygame.Rect.collidepoint(main_menu.button_1_rect, x, y) and main_menu.is_main_menu:
         main_menu.click_button()
         is_transition = True
 
+      # Check if "RESTART" button in the game over screen was clicked
       if pygame.Rect.collidepoint(game_over_screen.button_1_rect, x, y) and game_over_screen.is_game_over:
         game_over_screen.click_button()
         is_transition = True
-        fl_game_restart = True
+        is_game_restart = True
 
   # Drawing map (without collisions)
   gameMap.update()
   
+  # Adding shadow under player
   player.add_shadow()
 
   # Rendering collision objects (Walls, Students, etc)
@@ -141,6 +149,11 @@ while not done:
 
   # Priority of layer of laser and player
   if player.direction == "down":
+    # Stop moving if
+    # 1) Main Menu
+    # 2) Game is over
+    # 3) Win screen
+    # 4) Transition
     if not game_over_screen.is_game_over and not is_transition and not win_screen.is_win and not main_menu.is_main_menu:
       player.move()
       laser.move(player.player_pos_x, player.player_pos_y)
@@ -150,6 +163,11 @@ while not done:
     laser.render()
     cake.render()
   else:
+    # Stop moving if
+    # 1) Main Menu
+    # 2) Game is over
+    # 3) Win screen
+    # 4) Transition
     if not game_over_screen.is_game_over and not is_transition and not win_screen.is_win and not main_menu.is_main_menu:
       laser.move(player.player_pos_x, player.player_pos_y)
       cake.move(player.player_pos_x, player.player_pos_y)
@@ -159,9 +177,11 @@ while not done:
     cake.render()
     player.render()
   
+  # Make the laser invisible at the Level 11 (Final level, with Kelgenbayev Arnur)
   if current_level != 11:
     laser.make_visible()
 
+  # Detect if player collected candle
   for i in range(len(gameMap.candles)):
     candle_rect = gameMap.candles[i][1]
     if pygame.Rect.colliderect(player.player_rect, candle_rect):
@@ -172,13 +192,13 @@ while not done:
       if current_level == 10 and candles_score == 9:
         gameMap.add_portal(candles_score)
   
+  # Detect if player collided with Kelgenbayev Arnur
   if current_level == 11 and not is_transition:
     teacher_rect = gameMap.teacher[1]
 
     if pygame.Rect.colliderect(player.player_rect, teacher_rect):
       win_screen.is_win = True
-
-  fl_collision = False
+      background_music.stop()
 
   # Search for closest collision of the laser
   closest_collision_distance = 10000
@@ -209,8 +229,8 @@ while not done:
   
   if closest_collision:
     if closest_collision_type == "student" and laser.is_visible:
-      game_over_screen.play_audio()
       game_over_screen.is_game_over = True
+      background_music.stop()
 
     laser.detect_collision(closest_collision)
     laser.add_splash()
@@ -224,6 +244,7 @@ while not done:
 
   update_candles_score()
 
+  # Rendering UI screens
   if main_menu.is_main_menu:
     main_menu.render()
 
@@ -244,7 +265,9 @@ while not done:
 
     transition_x -= 35
     spike_width = 140
+    
     if transition_x <= -spike_width:
+      # Actions if Transition fully covered screen
       laser = Laser(initial_pos_x, initial_pos_y, screen)
       player = Player(initial_pos_x, initial_pos_y, screen, gameMap, laser)
       cake = Cake(initial_pos_x, initial_pos_y, screen, laser)
@@ -252,7 +275,7 @@ while not done:
       laser.is_visible = False
       main_menu.is_main_menu = False
 
-      if game_over_screen.is_game_over and fl_game_restart:
+      if game_over_screen.is_game_over and is_game_restart:
         restart()
 
       if current_level == 2:
@@ -285,6 +308,7 @@ while not done:
         gameMap.add_portal()
       gameMap.add_collisions(available_candles[current_level])
     if transition_x <= -(W + 2 * spike_width):
+      # Actions if Transition fully left screen
       is_transition_audio_playing = False
       is_transition = False
       transition_x = W

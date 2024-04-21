@@ -44,11 +44,11 @@ class GameMap:
       self.teacher = (collision_obj, collision_obj_rect)
 
   # Adding shadow
-  def add_shadow(self, student_rect):
+  def add_shadow(self, rect):
     shadow = pygame.image.load("assets\player\shadow.png")
     shadow = pygame.transform.scale(shadow, (shadow.get_width() * 4, shadow.get_height() * 4))
 
     shadow_rect = shadow.get_rect()
-    shadow_rect.center = (student_rect.centerx, student_rect.bottom)
+    shadow_rect.center = (rect.centerx, rect.bottom)
 
     self.screen.blit(shadow, shadow_rect)
