@@ -2,6 +2,8 @@ import pygame
 import random
 from functions.getMouseAngle import get_mouse_angle
 
+W = H = 1000
+
 # Player Class
 class Player:
   def __init__(self, x, y, screen, game_map, laser):
@@ -33,6 +35,10 @@ class Player:
     self.footstep_audio_2.set_volume(0.5)
     self.footstep_audio_3.set_volume(0.5)
 
+    self.shadow = pygame.image.load("assets\player\shadow.png")
+    self.shadow = pygame.transform.scale(self.shadow, (self.shadow.get_width() * 4, self.shadow.get_height() * 4))
+    self.shadow_rect = self.shadow.get_rect()
+
   def move(self):
     pressed_keys = pygame.key.get_pressed()
 
@@ -44,6 +50,7 @@ class Player:
       "right": 0,
       "left": 0
     }
+
     for (obstacle, obstacle_rect) in self.game_map.obstacles:
       if pygame.Rect.colliderect(self.player_rect, obstacle_rect):
         colliding_obstacle = obstacle_rect
@@ -57,28 +64,36 @@ class Player:
           collision_type["left"] = 1
 
     if pressed_keys[pygame.K_w]:
-      if collision_type["top"]:
+      if self.player_rect.top < 0:
+        self.is_moving = False
+      elif collision_type["top"]:
         if self.player_pos_y > colliding_obstacle.bottom:
           self.is_moving = False
       else:
         self.is_moving = True
         self.player_pos_y -= self.player_speed
     if pressed_keys[pygame.K_s]:
-      if collision_type["bottom"]:
+      if self.player_rect.bottom > H:
+        self.is_moving = False
+      elif collision_type["bottom"]:
         if self.player_pos_y < colliding_obstacle.top:
           self.is_moving = False
       else:
         self.is_moving = True
         self.player_pos_y += self.player_speed
     if pressed_keys[pygame.K_d]:
-      if collision_type["right"]:
+      if self.player_rect.right > W:
+        self.is_moving = False
+      elif collision_type["right"]:
         if self.player_pos_y > colliding_obstacle.bottom:
           self.is_moving = False
       else:
         self.is_moving = True
         self.player_pos_x += self.player_speed
     if pressed_keys[pygame.K_a]:
-      if collision_type["left"]:
+      if self.player_rect.left < 0:
+        self.is_moving = False
+      elif collision_type["left"]:
         if self.player_pos_y > colliding_obstacle.bottom:
           self.is_moving = False
       else:
@@ -106,7 +121,8 @@ class Player:
   
   # Adding shadow
   def add_shadow(self):
-    pygame.draw.ellipse(self.screen, (150, 150, 150), (self.player_rect.centerx - 35, self.player_rect.bottom - 15, 70, 30))
+    self.shadow_rect.center = (self.player_rect.centerx, self.player_rect.bottom)
+    self.screen.blit(self.shadow, self.shadow_rect)
   
   def rotate(self):
     if not self.is_moving:

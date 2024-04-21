@@ -19,17 +19,28 @@ class GameOverScreen:
 
     self.audio = pygame.mixer.Sound("assets\\audio\\game_over.mp3")
     self.audio.set_volume(0.5)
+
+    self.click_sound = pygame.mixer.Sound("assets\\audio\click.mp3")
     
     self.current_button = 1
 
     self.is_audio_playing = False
+    self.game_over_y = H
     self.is_game_over = False
   
   def click_button(self):
     self.current_button = 2
+    self.click_sound.play()
 
   def render(self):
+    self.background_rect.top = self.game_over_y
     self.screen.blit(self.background, self.background_rect)
+
+    if self.game_over_y > 35:
+      self.game_over_y -= 35
+    elif self.game_over_y > 0:
+      self.game_over_y = 0
+
     
     if self.current_button == 1:
       self.screen.blit(self.button_1, self.button_1_rect)

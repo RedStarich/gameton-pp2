@@ -8,12 +8,15 @@ class Level6(GameMap):
   def __init__(self, screen):
     super().__init__("assets\map\level_6\\floor.png", screen)
   
-  def add_collisions(self):
+  def add_collisions(self, is_candle_available):
     self.add_collision("assets\map\level_6\walls\wall_1.png", 4 * TILE_SIZE, 0, "wall")
     self.add_collision("assets\map\level_6\walls\wall_2.png", 0, 15 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_6\walls\wall_3.png", 16 * TILE_SIZE, 0, "wall")
     self.add_collision("assets\map\level_6\decoration\chair.png", 9 * TILE_SIZE, 20 * TILE_SIZE, "wall")
     self.add_collision("assets\map\level_6\decoration\chair.png", 9 * TILE_SIZE, 3 * TILE_SIZE, "wall")
+
+    if is_candle_available:
+      self.add_collision("assets\candles\candle_1.png", 9.5 * TILE_SIZE, 1.5 * TILE_SIZE, "candle")
 
   def add_portal(self):
     portal = pygame.Rect(0, 8 * TILE_SIZE, 4 * TILE_SIZE, TILE_SIZE)

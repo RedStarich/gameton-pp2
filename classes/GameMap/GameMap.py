@@ -11,6 +11,8 @@ class GameMap:
     self.obstacles = []
     self.students = []
     self.portals = []
+    self.candles = []
+    self.teacher = ()
   
   def update(self):
     self.screen.blit(self.game_map, self.game_map_rect)
@@ -20,6 +22,9 @@ class GameMap:
     for (image, rect) in self.obstacles:
       self.screen.blit(image, rect)
     for (image, rect) in self.students:
+      self.add_shadow(rect)
+      self.screen.blit(image, rect)
+    for (image, rect) in self.candles:
       self.screen.blit(image, rect)
 
   # Adding collision boxes
@@ -33,3 +38,17 @@ class GameMap:
       self.obstacles.append((collision_obj, collision_obj_rect))
     elif type == "student":
       self.students.append((collision_obj, collision_obj_rect))
+    elif type == "candle":
+      self.candles.append((collision_obj, collision_obj_rect))
+    elif type == "teacher":
+      self.teacher = (collision_obj, collision_obj_rect)
+
+  # Adding shadow
+  def add_shadow(self, student_rect):
+    shadow = pygame.image.load("assets\player\shadow.png")
+    shadow = pygame.transform.scale(shadow, (shadow.get_width() * 4, shadow.get_height() * 4))
+
+    shadow_rect = shadow.get_rect()
+    shadow_rect.center = (student_rect.centerx, student_rect.bottom)
+
+    self.screen.blit(shadow, shadow_rect)

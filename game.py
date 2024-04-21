@@ -2,6 +2,7 @@ import pygame
 from classes.Laser.Laser import Laser
 from classes.Cake.Cake import Cake
 from classes.Player.Player import Player
+from classes.GameMap.GameMap import GameMap
 from classes.Levels.Level2 import Level2
 from classes.Levels.Level3 import Level3
 from classes.Levels.Level4 import Level4
@@ -11,7 +12,9 @@ from classes.Levels.Level7 import Level7
 from classes.Levels.Level8 import Level8
 from classes.Levels.Level9 import Level9
 from classes.Levels.Level10 import Level10
+from classes.Levels.Level11 import Level11
 from classes.GameOverScreen.GameOverScreen import GameOverScreen
+from classes.WinScreen.WinScreen import WinScreen
 from classes.MainMenu.MainMenu import MainMenu
 
 pygame.init()
@@ -23,6 +26,9 @@ W = H = 1000
 TILE_SIZE = 40
 
 screen = pygame.display.set_mode((W, H))
+font = pygame.font.Font("assets\\fonts\pixel.ttf", 25)
+
+pygame.mouse.set_cursor(pygame.cursors.broken_x)
 
 # Initializing
 current_level = 2
@@ -36,6 +42,7 @@ player = Player(initial_pos_x, initial_pos_y, screen, gameMap, laser)
 cake = Cake(initial_pos_y, initial_pos_y, screen, laser)
 
 game_over_screen = GameOverScreen(screen)
+win_screen = WinScreen(screen)
 main_menu = MainMenu(screen)
 
 background_music = pygame.mixer.Sound("assets\\audio\\background_music.mp3")
@@ -44,6 +51,8 @@ background_music.play(-1)
 transition_audio = pygame.mixer.Sound("assets\\audio\\transition.mp3")
 transition_audio.set_volume(0.5)
 is_transition_audio_playing = False
+
+candle_audio = pygame.mixer.Sound("assets\\audio\candle_collect.mp3")
 
 # Importing transition
 transition = pygame.image.load("assets\\UI\\transition\\transition.png")
@@ -55,14 +64,28 @@ is_transition = False
 
 fl_game_restart = False
 
+available_candles = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+candles_score = 0
+
+def update_candles_score():
+  candles_text = font.render(f"{candles_score}/9", True, (255, 255, 255))
+  candles_icon = pygame.image.load("assets\\UI\candles\candles_icon.png")
+  candles_icon = pygame.transform.scale(candles_icon, (candles_icon.get_width() * 2, candles_icon.get_height() * 2))
+  candles_icon_rect = candles_icon.get_rect()
+  candles_icon_rect.left = 125
+  candles_icon_rect.centery = 40
+
+  screen.blit(candles_text, (25, 25))
+  screen.blit(candles_icon, candles_icon_rect)
+
 # Adding collision detectors to collision objects (Walls, Students, etc)
-gameMap.add_collisions()
+gameMap.add_collisions(available_candles[current_level])
 
 # Rendering portals to travel between levels
 gameMap.add_portal()
 
 def restart():
-  global fl_game_restart, is_game_over_audio_playing, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap, game_over_screen
+  global fl_game_restart, current_level, initial_pos_x, initial_pos_y, player, laser, cake, gameMap, available_candles, candles_score, game_over_screen
 
   # Initializing
   current_level = 2
@@ -75,13 +98,16 @@ def restart():
   laser = Laser(player.player_pos_x, player.player_pos_y, screen)
   cake = Cake(player.player_pos_x, player.player_pos_y, screen, laser)
 
+  available_candles = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+  candles_score = 0
+
   # Adding collision detectors to collision objects (Walls, Students, etc)
-  gameMap.add_collisions()
+  gameMap.add_collisions(available_candles[current_level])
 
   # Rendering portals to travel between levels
   gameMap.add_portal()
 
-  game_over_screen.is_game_over = False
+  game_over_screen = GameOverScreen(screen)
   game_over_screen.is_audio_playing = False
   fl_game_restart = False
 
@@ -115,7 +141,7 @@ while not done:
 
   # Priority of layer of laser and player
   if player.direction == "down":
-    if not game_over_screen.is_game_over and not is_transition:
+    if not game_over_screen.is_game_over and not is_transition and not win_screen.is_win and not main_menu.is_main_menu:
       player.move()
       laser.move(player.player_pos_x, player.player_pos_y)
       cake.move(player.player_pos_x, player.player_pos_y)
@@ -124,7 +150,7 @@ while not done:
     laser.render()
     cake.render()
   else:
-    if not game_over_screen.is_game_over and not is_transition:
+    if not game_over_screen.is_game_over and not is_transition and not win_screen.is_win and not main_menu.is_main_menu:
       laser.move(player.player_pos_x, player.player_pos_y)
       cake.move(player.player_pos_x, player.player_pos_y)
       player.move()
@@ -133,8 +159,25 @@ while not done:
     cake.render()
     player.render()
   
-  laser.make_visible()
+  if current_level != 11:
+    laser.make_visible()
+
+  for i in range(len(gameMap.candles)):
+    candle_rect = gameMap.candles[i][1]
+    if pygame.Rect.colliderect(player.player_rect, candle_rect):
+      gameMap.candles.pop(i)
+      available_candles[current_level] = 0
+      candles_score += 1
+      candle_audio.play()
+      if current_level == 10 and candles_score == 9:
+        gameMap.add_portal(candles_score)
   
+  if current_level == 11 and not is_transition:
+    teacher_rect = gameMap.teacher[1]
+
+    if pygame.Rect.colliderect(player.player_rect, teacher_rect):
+      win_screen.is_win = True
+
   fl_collision = False
 
   # Search for closest collision of the laser
@@ -149,6 +192,13 @@ while not done:
       closest_collision_distance = ray_length
       closest_collision = obstacle_rect
       closest_collision_type = "wall"
+  for (candle, candle_rect) in gameMap.candles:
+    laser.detect_collision(candle_rect)
+    ray_length = laser.ray_length
+    if ray_length < closest_collision_distance:
+      closest_collision_distance = ray_length
+      closest_collision = candle_rect
+      closest_collision_type = "candle"
   for (student, student_rect) in gameMap.students:
     laser.detect_collision(student_rect)
     ray_length = laser.ray_length
@@ -172,11 +222,19 @@ while not done:
       initial_pos_x, initial_pos_y = portal[2]
       is_transition = True
 
+  update_candles_score()
+
   if main_menu.is_main_menu:
     main_menu.render()
 
   if game_over_screen.is_game_over:
     game_over_screen.render()
+
+  if win_screen.is_win:
+    win_screen.render()
+
+  if current_level == 11:
+    laser.is_visible = False
 
   # Transition between levels
   if is_transition:
@@ -197,8 +255,6 @@ while not done:
       if game_over_screen.is_game_over and fl_game_restart:
         restart()
 
-      # if current_level == 1:
-      #   gameMap = Level1()
       if current_level == 2:
         gameMap = Level2(screen)
       if current_level == 3:
@@ -217,12 +273,17 @@ while not done:
         gameMap = Level9(screen)
       if current_level == 10:
         gameMap = Level10(screen)
+      if current_level == 11:
+        gameMap = Level11(screen)
 
       laser.move(initial_pos_x, initial_pos_y)
       cake.move(initial_pos_x, initial_pos_y)
 
-      gameMap.add_portal()
-      gameMap.add_collisions()
+      if current_level == 10:
+        gameMap.add_portal(current_level)
+      else:
+        gameMap.add_portal()
+      gameMap.add_collisions(available_candles[current_level])
     if transition_x <= -(W + 2 * spike_width):
       is_transition_audio_playing = False
       is_transition = False
